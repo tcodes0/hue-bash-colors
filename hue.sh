@@ -139,13 +139,14 @@ get-arguments() {
 #                      MAIN
 #- - - - - - - - - - - - - - - - - - - - - - - - -
 parse-options "$@"
+sequence="\e["
 
 if [ "$h" -o "$help" -o "$#" == 0 ]; then
   echo -e "\e[1;36m♦︎ $ hue.sh --yellow --bold foobar\
   \n  < \e[33;1;49mfoobar\e[1;36m\
   \n  $ hue.sh --red --underline --box Hello!\
   \n  < \e[7;4;31mHello!\e[0m
-  \n  \e[4;35mhue.sh \e[34mhelps \e[33mto make \e[32mthe terminal \e[36mprettier!\e[0m
+  \n  \e[4;35mhue.sh \e[34;1mhelps \e[0;4;33mto make \e[1;32mthe terminal \e[0;4;36mprettier!\e[0m
   \n  \e[4mcolors:\e[0m
   --black           --red
   --purple          --pink
@@ -156,19 +157,19 @@ if [ "$h" -o "$help" -o "$#" == 0 ]; then
   --light-red       --light-pink
   --light-green     --light-teal
   --light-yellow    --light-grey
-  \n  \e[4mstyles\e[0;1;4;32m*\e[0m
+  \n  \e[4mstyles\e[37;49m*\e[0m
   --bold            --underline
   --dim             --blink
-  --box             --italic\e[1;4;32m#\e[0m
-  \n  \e[1;4;32m* You can combine them! (some combos don't work)\e[0m
-  \e[1;4;32m# Terminal font must support italic\e[0m
-  \n  \e[4mbackgrounds\e[0;1;4;33m*\e[0m:
+  --box             --italic\e[4;37;49m#\e[0m
+  \n  \e[4;37;49m* You can combine them! (some combos don't work)\e[0m
+  \e[4;37;49m# Terminal font must support italic\e[0m
+  \n  \e[4mbackgrounds\e[4;37;49m*\e[0m:
   --bg=white        --bg=black
   --bg=light-black  --bg=\e[3m...any color!\e[0m
-  \n  \e[1;4;33m* --box and --bg= override eachother!\e[0m
+  \n  \e[4;37;49m* --box and --bg= override eachother!\e[0m
   \n  need \e[4minspiration\e[0m?
   --show-all
-  \n  want to output \e[4mescape sequences\e[0m only?
+  \n  want to output \e[4mescape sequences\e[0m to use in code?
   --code"
   exit
 fi
@@ -176,120 +177,135 @@ fi
 # styles
 # only (bold or white) and (bold) prints yellow. Implementation quirk.
 if [ $bold ]; then
-  printf "\e[1m"
+  sequence=$sequence"1;"
 fi
 if [ $dim ]; then
-  printf "\e[2m"
+  sequence=$sequence"2;"
 fi
 if [ $italic ]; then
-  printf "\e[3m"
+  sequence=$sequence"3;"
 fi
 if [ $underline ]; then
-  printf "\e[4m"
+  sequence=$sequence"4;"
 fi
 if [ $blink ]; then
-  printf "\e[5m"
+  sequence=$sequence"5;"
 fi
 if [ $box ]; then
-  printf "\e[7m"
+  sequence=$sequence"7;"
 fi
 
 # foregrounds
 if [ $black ]; then
-  printf "\e[30m"
+  sequence=$sequence"30;"
 elif [ $red ]; then
-  printf "\e[31m"
+  sequence=$sequence"31;"
 elif [ $green ]; then
-  printf "\e[32m"
+  sequence=$sequence"32;"
 elif [ $yellow ]; then
-  printf "\e[33m"
+  sequence=$sequence"33;"
 elif [ $purple ]; then
-  printf "\e[34m"
+  sequence=$sequence"34;"
 elif [ $pink ]; then
-  printf "\e[35m"
+  sequence=$sequence"35;"
 elif [ $teal ]; then
-  printf "\e[36m"
+  sequence=$sequence"36;"
 elif [ "$gray" -o "$grey" ]; then
-  printf "\e[37m"
+  sequence=$sequence"37;"
 elif [ $white ]; then
-  printf "\e[39m"
+  sequence=$sequence"39;"
 elif [ $light_black ]; then
-  printf "\e[90m"
+  sequence=$sequence"90;"
 elif [ $light_red ]; then
-  printf "\e[91m"
+  sequence=$sequence"91;"
 elif [ $light_green ]; then
-  printf "\e[92m"
+  sequence=$sequence"92;"
 elif [ $light_yellow ]; then
-  printf "\e[93m"
+  sequence=$sequence"93;"
 elif [ $light_purple ]; then
-  printf "\e[94m"
+  sequence=$sequence"94;"
 elif [ $light_pink ]; then
-  printf "\e[95m"
+  sequence=$sequence"95;"
 elif [ $light_teal ]; then
-  printf "\e[96m"
+  sequence=$sequence"96;"
 elif [ "$light_gray" -o "$light_grey" ]; then
-  printf "\e[97m"
+  sequence=$sequence"97;"
 fi
 
 # backgrounds
 case $bg in
   black)
-    printf "\e[40m"
+    sequence=$sequence"40;"
   ;;
   red)
-    printf "\e[41m"
+    sequence=$sequence"41;"
   ;;
   green)
-    printf "\e[42m"
+    sequence=$sequence"42;"
   ;;
   yellow)
-    printf "\e[43m"
+    sequence=$sequence"43;"
   ;;
   purple)
-    printf "\e[44m"
+    sequence=$sequence"44;"
   ;;
   pink)
-    printf "\e[45m"
+    sequence=$sequence"45;"
   ;;
   teal)
-    printf "\e[46m"
+    sequence=$sequence"46;"
   ;;
   gray | grey)
-    printf "\e[47m"
+    sequence=$sequence"47;"
   ;;
   white)
-    printf "\e[49m"
+    sequence=$sequence"49;"
   ;;
   light_black)
-    printf "\e[100m"
+    sequence=$sequence"100;"
   ;;
   light_red)
-    printf "\e[101m"
+    sequence=$sequence"101;"
   ;;
   light_green)
-    printf "\e[102m"
+    sequence=$sequence"102;"
   ;;
   light_yellow)
-    printf "\e[103m"
+    sequence=$sequence"103;"
   ;;
   light_purple)
-    printf "\e[104m"
+    sequence=$sequence"104;"
   ;;
   light_pink)
-    printf "\e[105m"
+    sequence=$sequence"105;"
   ;;
   light_teal)
-    printf "\e[106m"
+    sequence=$sequence"106;"
   ;;
   light_gray | light_grey)
-    printf "\e[107m"
+    sequence=$sequence"107;"
   ;;
   *)
-    printf "\e[49m"
+    sequence=$sequence"49;"
   ;;
 esac
 
-# print all arguments
-printf "$(get-arguments)"
-# end formatting
+#trim last character (a ;) to close sequence
+sequence=${sequence:0:-1}"m"
+
+if [ "$code" ]; then
+  #print sequence as-is. Add 'printf \"' so user can copy paste output
+  echo -n "printf \"$sequence"
+  if [ "$(get-arguments)" ]; then
+    # print all arguments, if any
+    printf "$(get-arguments)"
+  fi
+  #close \", suggest a newline and a printf to clear formatting justobesafe
+  echo -n "\" && printf \"\e[0m\" && printf \"\n\""
+else
+  #interpret sequence to produce colored output
+  printf "$sequence$(get-arguments)"
+fi
+
+# clear formatting
 printf "\e[0m\n"
