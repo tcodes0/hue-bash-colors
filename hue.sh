@@ -1,11 +1,4 @@
 #! /usr/bin/env bash
-# Vadd 256 support.
-# 
-# 
-# 
-# 
-# 
-# 
 #- - - - - - - - - - - - - - - - - - - - - - - - -
 #                 HELPER FUNCTIONS
 #- - - - - - - - - - - - - - - - - - - - - - - - -
@@ -138,19 +131,22 @@ get-arguments() {
   done
 }
 #- - - - - - - - - - - - - - - - - - - - - - - - -
-#                 SUB ROUTINES
+#                      MAIN
 #- - - - - - - - - - - - - - - - - - - - - - - - -
+parse-options "$@"
 
 #start of a color sequence
-s="\e["
+_s="\033["
 #clear colors
-end="${s}0m"
+__="${_s}0m"
+#256color start sequence
+_x="38;05;"
 
 print-all-combinations(){
   for bg in {40..47} {100..107} 49 ; do
     for fg in {30..37} {90..97} 39 ; do
       for fm in 0 1 2 3 4 5 7 ; do
-        printf "${s}${fm};${bg};${fg}m \"\\${s}${fm};${bg};${fg}m\" ${s}0m"
+        printf "${_s}${fm};${bg};${fg}m \"\\${_s}${fm};${bg};${fg}m\" ${_s}0m"
       done
       printf "\n"
     done
@@ -158,19 +154,21 @@ print-all-combinations(){
 }
 
 _256(){
-  # arg 1: 256 color code number.
-  # output: color code with no start or end
-  echo -n "38;05;${1}"
+  # arg 1: 256 color code $number.
+  # output: 38;05;$number
+  echo -n "${_x}${1}"
 }
 
 print-256-colors(){
+  local bg
   for color in {0..255}; do 
-    echo -ne "${s}$(_256 $color)m $(printf %03d $color)"
-    if [ $((${color} % 16)) == 15 ]; then 
+    echo -ne "${_s}$(_256 $color)m $(printf %03d $color)${__}"
+    echo -ne "${_s}7;$(_256 $color)m $(printf %03d $color)${__}"
+    if [ $((${color} % 12)) == 3 ]; then 
       printf "\n"
     fi
   done
-  echo -ne "$end"
+  echo -ne "${__}"
 }
 
 print-ansi-colors(){
@@ -178,35 +176,37 @@ print-ansi-colors(){
   # Modified by Aaron Griffin
   # and further by Kazuo Teramoto
   # Color-scripts by Stark
-  # Today is may/2018
 
-  FGNAMES=('black ' 'red' 'green' 'yellow' 'purple ' 'pink' 'teal ' 'white ')
-  BGNAMES=('DFT' 'BLK' 'RED' 'GRN' 'YEL' 'BLU' 'MAG' 'CYN' 'WHT')
+  local FGNAMES=('black ' 'red' 'green' 'yellow' 'purple ' 'pink' 'teal ' 'white ' 'no 8' 'default ')
+  local BGNAMES=('default' 'black  ' 'red    ' 'green  ' 'yellow ' 'purple ' 'pink   ' 'teal   ' 'white  ')
+  #controls distance between columns
+  local gutter="   "
 
-  # echo "     ┌──────────────────────────────────────────────────────────────────────────┐"
+  echo -e "\n${_s}7;49m* Bg * ${__}$gutter${_s}7;49m  ****************   Normal and bold foreground   ****************  ${__}"
   for b in {0..8}; do
     ((b>0)) && bg=$((b+39))
 
-    echo -en "\033[0m ${BGNAMES[b]}    "
+    #Left blank
+    echo -en "${__}${_s}7;39;49m       ${__}$gutter"
     
-    for f in {0..7}; do
-      echo -en "\033[${bg};$((f+30))m  ${FGNAMES[f]}"
+    #Normal color row
+    for f in {0..7} 9; do
+      echo -en "${_s}${bg};$((f+30))m  ${FGNAMES[f]}"
     done
+    echo -en "${__}"
+
+    #Left Background color name
+    echo -en "${__}\n${_s}7;39;49m${BGNAMES[b]}${__}$gutter"
     
-    echo -en "\033[0m"
-    echo -en "\033[0m\n\033[0m        "
-    
-    for f in {0..7}; do
-      echo -en "\033[${bg};1;$((f+30))m  ${FGNAMES[f]}"
+    #Bold color row
+    for f in {0..7} 9; do
+      echo -en "${_s}${bg};1;$((f+30))m  ${FGNAMES[f]}"
     done
+    echo -en "${__}\n"
 
-    echo -en "\033[0m"
-    echo -e "\033[0m"
-
-    ((b<8)) &&
-    echo -e " "
+    #Spacer
+    ((b<8)) && echo -e "${_s}7;m       ${__}"
   done
-  # echo "     └──────────────────────────────────────────────────────────────────────────┘"
 }
 
 candy(){
@@ -222,9 +222,9 @@ candy(){
           if [ "$bg" == 49 ]; then
             buffer+="\n\n"
           fi
-          buffer+=$(printf "${s}${fm};${bg};${fg}m \"\\${s}${fm};${bg};${fg}m\" ${s}0m")
+          buffer+=$(printf "${_s}${fm};${bg};${fg}m \"\\${_s}${fm};${bg};${fg}m\" ${_s}0m")
         else
-          buffer+=$(printf "${s}${fm};${bg};${fg}m \"\\${s}${fm};${bg};${fg}m\" ${s}0m")
+          buffer+=$(printf "${_s}${fm};${bg};${fg}m \"\\${_s}${fm};${bg};${fg}m\" ${_s}0m")
         fi
 
         if [ "$((j % 4))" == 0 ]; then
@@ -238,56 +238,63 @@ candy(){
   done
 }
 
-#- - - - - - - - - - - - - - - - - - - - - - - - -
-#                      MAIN
-#- - - - - - - - - - - - - - - - - - - - - - - - -
-parse-options "$@"
-
 #this var stores user selected colors
-sequence="$s"
+sequence="${_s}"
 
 if [ "$h" -o "$help" -o "$#" == 0 ]; then
-  echo -e "${s}4;35mHUE.SH ${s}34;1mHELPS ${s}0;4;33mTO MAKE ${s}1;32mTHE TERMINAL ${s}0;4;36mPRETTIER!$end
-  \n♦︎ $ hue.sh --pink --bold foobar\
-  \n  < ${s}35;1;49mfoobar$end
-  \n♦ $ hue.sh --red --underline --swap Hello!\
-  \n  < ${s}7;4;31mHello!$end
-  \n♦ ${s}4mANSI colors:$end
-  ${s}7;30m 30 $end${s}1;30m 30 $end--black           ${s}7;34m 34 $end${s}1;34m 34 $end--purple
-  ${s}7;31m 31 $end${s}1;31m 31 $end--red             ${s}7;35m 35 $end${s}1;35m 35 $end--pink
-  ${s}7;32m 32 $end${s}1;32m 32 $end--green           ${s}7;36m 36 $end${s}1;36m 36 $end--teal
-  ${s}7;33m 33 $end${s}1;33m 33 $end--yellow          ${s}7;37m 37 $end${s}1;37m 37 $end--grey
-  ${s}7;39m 39 $end${s}1;39m 39 $end--default
-  ${s}7;90m 90 $end${s}1;90m 90 $end--light-black     ${s}7;94m 94 $end${s}1;94m 94 $end--light-purple
-  ${s}7;91m 91 $end${s}1;91m 91 $end--light-red       ${s}7;95m 95 $end${s}1;95m 95 $end--light-pink
-  ${s}7;92m 92 $end${s}1;92m 92 $end--light-green     ${s}7;96m 96 $end${s}1;96m 96 $end--light-teal
-  ${s}7;93m 93 $end${s}1;93m 93 $end--light-yellow    ${s}7;97m 97 $end${s}1;97m 97 $end--light-grey
-  \n♦ ${s}4mstyles${s}90;49m*$end
-  ${s}1m--bold$end            ${s}4m--underline$end
-  ${s}2m--dim$end             ${s}5m--blink$end
-  ${s}7m--swap$end${s}90;49m+$end           ${s}3m--italic${s}90;49m#$end
-  \n  ${s}90;49m* You can combine them!$end
-  ${s}90;49m# Terminal font must support italic$end
-  ${s}90;49m+ Swap works swaping foreground and background color!$end
-  \n♦ ${s}4mbackgrounds$end
-  ${s}107;30m--bg=default$end      ${s}40m--bg=black$end
-  ${s}100m--bg=light-black$end  ${s}46;30m--bg=${s}3m...any ANSI color!$end
-  \n♦ ${s}4mmore options:$end
-  --code          output color code only
-  --pallete       show all possibilities
-  --ansi          show ANSI color preview
-  --more-colors   show 256 color preview
-  --candy         pretty
-  "
+  echo -e "\
+  \n${_s}4;${_x}160m♦ HUE.SH ${_s}1;${_x}161mHELPS ${_s}0;4;${_x}162mTO MAKE ${_s}1;${_x}163mTHE TERMINAL ${_s}0;4;${_x}164mPRETTIER!${__}\
+  \n${_s}4;${_x}220m♦ HUE.SH ${_s}1;${_x}221mHELPS ${_s}0;4;${_x}222mTO MAKE ${_s}1;${_x}223mTHE TERMINAL ${_s}0;4;${_x}224mPRETTIER!${__}\
+  \n${_s}4;${_x}70m♦ HUE.SH ${_s}1;${_x}71mHELPS ${_s}0;4;${_x}72mTO MAKE ${_s}1;${_x}73mTHE TERMINAL ${_s}0;4;${_x}74mPRETTIER!${__}\
+  \n${_s}4;${_x}20m♦ HUE.SH ${_s}1;${_x}21mHELPS ${_s}0;4;${_x}22mTO MAKE ${_s}1;${_x}23mTHE TERMINAL ${_s}0;4;${_x}24mPRETTIER!${__}
+  \n♦︎ $ hue.sh --pink --bold hue.sh works like an echo on steroids for colors\
+  \n  < ${_s}35;1;49mhue.sh works like an echo on steroids for colors${__}
+  \n♦ $ hue.sh --red --underline --swap --bg=teal Hello!\
+  \n  < ${_s}4;7;31;46mHello!${__}
+  \n♦ ${_s}4mANSI colors:${__}
+  ${_s}7;30m 30 ${__}${_s}1;30m 30 ${__}--black        ${_s}7;34m 34 ${__}${_s}1;34m 34 ${__}--purple
+  ${_s}7;31m 31 ${__}${_s}1;31m 31 ${__}--red          ${_s}7;35m 35 ${__}${_s}1;35m 35 ${__}--pink
+  ${_s}7;32m 32 ${__}${_s}1;32m 32 ${__}--green        ${_s}7;36m 36 ${__}${_s}1;36m 36 ${__}--teal
+  ${_s}7;33m 33 ${__}${_s}1;33m 33 ${__}--yellow       ${_s}7;37m 37 ${__}${_s}1;37m 37 ${__}--white
+  ${_s}7;39m 39 ${__}${_s}1;39m 39 ${__}--default
+  ${_s}7;90m 90 ${__}${_s}1;90m 90 ${__}--light-black  ${_s}7;94m 94 ${__}${_s}1;94m 94 ${__}--light-purple
+  ${_s}7;91m 91 ${__}${_s}1;91m 91 ${__}--light-red    ${_s}7;95m 95 ${__}${_s}1;95m 95 ${__}--light-pink
+  ${_s}7;92m 92 ${__}${_s}1;92m 92 ${__}--light-green  ${_s}7;96m 96 ${__}${_s}1;96m 96 ${__}--light-teal
+  ${_s}7;93m 93 ${__}${_s}1;93m 93 ${__}--light-yellow ${_s}7;97m 97 ${__}${_s}1;97m 97 ${__}--light-white
+  \n♦ ${_s}4m256color:${__}${_s}2;49m#${__}
+  ${_s}7;${_x}86m 86 ${__}${_s}${_x}86;49m 86 ${__}--color=86     ${_s}7;${_x}204m 204 ${__}${_s}${_x}204;49m 204 ${__}--color=204
+  ${_s}7;${_x}53m 53 ${__}${_s}${_x}53;49m 53 ${__}--color=53     ${_s}7;${_x}220m 220 ${__}${_s}${_x}220;49m 220 ${__}--color=220
+  \n♦ ${_s}4mstyles${_s}2;49m*${__}
+  ${_s}1;7;99m 01 ${__} ${_s}1m--bold${__}            ${_s}7;99m ${_s}4m04${_s}24m ${__} ${_s}4m--underline${__}
+  ${_s}2;7;99m 02 ${__} ${_s}2m--dim${__}             ${_s}5;7;99m 05 ${__} ${_s}5m--blink${__}${_s}2;49m#${__}
+  ${_s}3;7;99m 03 ${__} ${_s}3m--italic.${_s}2;49m#${__}        ${_s}7;99m 07 ${__} ${_s}7m--swap${__}${_s}2;49m+${__}
+  \n  ${_s}2;49m* You can combine them!${__}
+  ${_s}2;49m# Depends on terminal emulator support.${__}
+  ${_s}2;49m+ Swap works swaping foreground and background color.${__}
+  \n♦ ${_s}4mbackgrounds${__}
+  ${_s}107;30m--bg=default${__}           ${_s}46m--bg=teal${__}
+  ${_s}100m--bg=light-black${__}       --bg=${_s}3m...any ANSI color!${__}
+  ${_s}7;38;05;150;49m--color=150 --swap${__}     ${_s}7;38;05;20;49m--color=20 --swap${__}
+  \n♦ ${_s}4mmore options:${__}
+  --code                 output color code only
+  --pallete              view all possible ANSI combinations
+  --view=ansi            view ANSI color preview
+  --view=256             view 256color preview
+  --newline, -n          don't print a newline"
+#  --candy                🍫 🌈
+#  "
   exit
 fi
 
 case "true" in
-  "$more_colors") print-256-colors && exit ;;
   "$pallete") print-all-combinations && exit ;;
-  "$ansi") print-ansi-colors && exit ;;
   "$candy") candy && exit ;;
 esac
+
+if 
+  [ "$view" == "ansi" -o "$view" == "ANSI" ]; then print-ansi-colors && exit; elif
+  [ "$view" == "256" ]; then print-256-colors && exit 
+fi
 
 # styles
 # only (bold or default) or only (bold) prints yellow. Implementation quirk.
@@ -301,21 +308,19 @@ if [ $swap ]; then  sequence+="7;"; fi
 # foregrounds
 if [[ "$color" =~ [[:digit:]] ]]; then
   if [[ "$color" =~ _ ]] || [ "$color" -gt 255 ]; then
-    echo -e "${s}1;33;m WARNING: $color is out of bounds for 256 color codes.
-          Use a number between 0 and 255.$end"
+    echo -e "${_s}1;33;m WARNING: $color is out of bounds for 256 color codes.
+          Use a number between 0 and 255.${__}"
   else
     sequence+="$(_256 $color);"
   fi
-fi
-
-if [ $black ]; then  sequence+="30;"
+elif [ $black ]; then  sequence+="30;"
 elif [ $red ]; then  sequence+="31;"
 elif [ $green ]; then  sequence+="32;"
 elif [ $yellow ]; then  sequence+="33;"
 elif [ $purple ]; then  sequence+="34;"
 elif [ $pink ]; then  sequence+="35;"
 elif [ $teal ]; then  sequence+="36;"
-elif [ "$gray" -o "$grey" ]; then  sequence+="37;"
+elif [ "$white" ]; then  sequence+="37;"
 elif [ $default ]; then  sequence+="39;"
 elif [ $light_black ]; then  sequence+="90;"
 elif [ $light_red ]; then  sequence+="91;"
@@ -324,7 +329,7 @@ elif [ $light_yellow ]; then  sequence+="93;"
 elif [ $light_purple ]; then  sequence+="94;"
 elif [ $light_pink ]; then  sequence+="95;"
 elif [ $light_teal ]; then  sequence+="96;"
-elif [ "$light_gray" -o "$light_grey" ]; then  sequence+="97;"
+elif [ "$light_white" ]; then  sequence+="97;"
 fi
 
 # backgrounds
@@ -336,7 +341,7 @@ case $bg in
   purple)  sequence+="44;" ;;
   pink)  sequence+="45;" ;;
   teal)  sequence+="46;" ;;
-  gray | grey)  sequence+="47;" ;;
+  white)  sequence+="47;" ;;
   default)  sequence+="49;" ;;
   light_black)  sequence+="100;" ;;
   light_red)  sequence+="101;" ;;
@@ -345,11 +350,11 @@ case $bg in
   light_purple)  sequence+="104;" ;;
   light_pink)  sequence+="105;" ;;
   light_teal)  sequence+="106;" ;;
-  light_gray | light_grey)  sequence+="107;" ;;
-  *)  sequence+="49;" ;;
+  light_white)  sequence+="107;" ;;
+  *)  sequence+="" ;;
 esac
 
-#trim last character (;) to close sequence
+#trim last character (;) to close sequence with m
 sequence=${sequence:0:-1}"m"
 
 if [ "$code" ]; then
@@ -357,14 +362,20 @@ if [ "$code" ]; then
   echo -n "printf \"$sequence"
   if [ "$(get-arguments)" ]; then
     # print all arguments, if any
-    printf "$(get-arguments)"
+    printf -- "$(get-arguments)"
   fi
-  #close \", suggest a newline and a printf to clear formatting, justobesafe
-  echo -n "\" && printf \"$end\" && printf \"\n\""
+  #close \" clear formatting
+  echo -n "${__}\""
+  # echo -n "\" && printf \"${__}\" && printf \"\n\""
 else
   #interpret sequence to produce colored output
   printf "$sequence$(get-arguments)"
 fi
 
 # clear formatting
-printf "$end\n"
+printf "${__}"
+
+#print a newline
+if ! [ "$n" -o "$newline" ]; then
+  printf "\n"
+fi
