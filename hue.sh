@@ -1,4 +1,9 @@
 #! /usr/bin/env bash
+#
+# 🚀   2018 by Thomazella 🌙
+# http://tazel.website
+# https://github.com/Thomazella
+#
 #- - - - - - - - - - - - - - - - - - - - - - - - -
 #                 HELPER FUNCTIONS
 #- - - - - - - - - - - - - - - - - - - - - - - - -
@@ -28,6 +33,12 @@ parse-options() {
     return
   fi
 
+  #reject invalid invisible characters in input
+  case $(echo "$@") in
+    *\000* | *\008* | *\009* | *\045*) echo -e "\033[1;33;m WARNING: Input contains invalid characters, please use alphanumeric characters only.\033[0m" && exit 1 ;;
+  esac
+
+
   # Opts we may have inherited from a parent function also using parse-options. Unset to void collisions.
   if [ "$allOptions" ]; then
     for opt in ${allOptions[@]}; do
@@ -56,13 +67,13 @@ parse-options() {
     fi
 
     # if long
-    if [[ "$arg" =~ ^--[[:alnum:]] ]]; then
+    if [[ "$arg" =~ ^--[[:alpha:]_]{2} ]]; then
       #start on char 2, skip leading --
       long=${arg:2}
       # substitute any - with _
       long=${long/-/_}
       # if opt has an =, it means it has an arg
-      if [[ "$arg" =~ ^--[[:alnum:]][[:alnum:]]+= ]]; then
+      if [[ "$arg" =~ ^--[[:alpha:]_][[:alpha:]_]+= ]]; then
         # split opt from arg. Ann=choco makes export ann=choco
         export ${long%=*}="${long#*=}"
         longsWithArgs+=(${long%=*})
@@ -74,7 +85,7 @@ parse-options() {
     fi
 
     # if short
-    if [[ "$arg" =~ ^-[[:alnum:]] ]]; then
+    if [[ "$arg" =~ ^-[[:alpha:]]+$ ]] && [[ ! "$arg" =~ = ]]; then
       local i=1 #start on 1, skip leading -
       # since shorts can be chained (-gpH), look at one char at a time
       while [ $i != ${#arg} ]; do
@@ -161,10 +172,10 @@ _256(){
 
 print-256-colors(){
   local bg
-  for color in {0..255}; do 
+  for color in {0..255}; do
     echo -ne "${_s}$(_256 $color)m $(printf %03d $color)${__}"
     echo -ne "${_s}7;$(_256 $color)m $(printf %03d $color)${__}"
-    if [ $((${color} % 12)) == 3 ]; then 
+    if [ $((${color} % 12)) == 3 ]; then
       printf "\n"
     fi
   done
@@ -188,7 +199,7 @@ print-ansi-colors(){
 
     #Left blank
     echo -en "${__}${_s}7;39;49m       ${__}$gutter"
-    
+
     #Normal color row
     for f in {0..7} 9; do
       echo -en "${_s}${bg};$((f+30))m  ${FGNAMES[f]}"
@@ -197,7 +208,7 @@ print-ansi-colors(){
 
     #Left Background color name
     echo -en "${__}\n${_s}7;39;49m${BGNAMES[b]}${__}$gutter"
-    
+
     #Bold color row
     for f in {0..7} 9; do
       echo -en "${_s}${bg};1;$((f+30))m  ${FGNAMES[f]}"
@@ -262,22 +273,22 @@ if [ "$h" -o "$help" -o "$#" == 0 ]; then
   ${_s}7;92m 92 ${__}${_s}1;92m 92 ${__}--light-green  ${_s}7;96m 96 ${__}${_s}1;96m 96 ${__}--light-teal
   ${_s}7;93m 93 ${__}${_s}1;93m 93 ${__}--light-yellow ${_s}7;97m 97 ${__}${_s}1;97m 97 ${__}--light-white
   \n♦ ${_s}4m256color:${__}${_s}2;49m#${__}
-  ${_s}7;${_x}86m 86 ${__}${_s}${_x}86;49m 86 ${__}--color=86     ${_s}7;${_x}204m 204 ${__}${_s}${_x}204;49m 204 ${__}--color=204
-  ${_s}7;${_x}53m 53 ${__}${_s}${_x}53;49m 53 ${__}--color=53     ${_s}7;${_x}220m 220 ${__}${_s}${_x}220;49m 220 ${__}--color=220
+  ${_s}7;${_x}86m 86 ${__}${_s}${_x}86;49m 86 ${__}--hue=86       ${_s}7;${_x}204m 204 ${__}${_s}${_x}204;49m 204 ${__}--hue=204
+  ${_s}7;${_x}53m 53 ${__}${_s}${_x}53;49m 53 ${__}--hue=53       ${_s}7;${_x}220m 220 ${__}${_s}${_x}220;49m 220 ${__}--hue=220
   \n♦ ${_s}4mstyles${_s}2;49m*${__}
   ${_s}1;7;99m 01 ${__} ${_s}1m--bold${__}            ${_s}7;99m ${_s}4m04${_s}24m ${__} ${_s}4m--underline${__}
   ${_s}2;7;99m 02 ${__} ${_s}2m--dim${__}             ${_s}5;7;99m 05 ${__} ${_s}5m--blink${__}${_s}2;49m#${__}
   ${_s}3;7;99m 03 ${__} ${_s}3m--italic.${_s}2;49m#${__}        ${_s}7;99m 07 ${__} ${_s}7m--swap${__}${_s}2;49m+${__}
   \n  ${_s}2;49m* You can combine them!${__}
   ${_s}2;49m# Depends on terminal emulator support.${__}
-  ${_s}2;49m+ Swap works swaping foreground and background color.${__}
+  ${_s}2;49m+ Swap works swapping foreground and background color.${__}
   \n♦ ${_s}4mbackgrounds${__}
   ${_s}107;30m--bg=default${__}           ${_s}46m--bg=teal${__}
   ${_s}100m--bg=light-black${__}       --bg=${_s}3m...any ANSI color!${__}
-  ${_s}7;38;05;150;49m--color=150 --swap${__}     ${_s}7;38;05;20;49m--color=20 --swap${__}
+  ${_s}7;38;05;150;49m--hue=150 --swap${__}       ${_s}7;38;05;20;49m--hue=20 --swap${__}
   \n♦ ${_s}4mmore options:${__}
   --code                 output color code only
-  --pallete              view all possible ANSI combinations
+  --palette              view all possible ANSI combinations
   --view=ansi            view ANSI color preview
   --view=256             view 256color preview
   --newline, -n          don't print a newline"
@@ -287,13 +298,13 @@ if [ "$h" -o "$help" -o "$#" == 0 ]; then
 fi
 
 case "true" in
-  "$pallete") print-all-combinations && exit ;;
+  "$palette") print-all-combinations && exit ;;
   "$candy") candy && exit ;;
 esac
 
-if 
+if
   [ "$view" == "ansi" -o "$view" == "ANSI" ]; then print-ansi-colors && exit; elif
-  [ "$view" == "256" ]; then print-256-colors && exit 
+  [ "$view" == "256" ]; then print-256-colors && exit
 fi
 
 # styles
@@ -306,12 +317,12 @@ if [ $blink ]; then  sequence+="5;"; fi
 if [ $swap ]; then  sequence+="7;"; fi
 
 # foregrounds
-if [[ "$color" =~ [[:digit:]] ]]; then
-  if [[ "$color" =~ _ ]] || [ "$color" -gt 255 ]; then
-    echo -e "${_s}1;33;m WARNING: $color is out of bounds for 256 color codes.
+if [[ "$hue" =~ ^[[:digit:]]+$ ]]; then
+  if [[ "$hue" =~ _ ]] || [ "$hue" -gt 255 ]; then
+    echo -e "${_s}1;33;m WARNING: $hue is out of bounds for 256 color codes.
           Use a number between 0 and 255.${__}"
   else
-    sequence+="$(_256 $color);"
+    sequence+="$(_256 $hue);"
   fi
 elif [ $black ]; then  sequence+="30;"
 elif [ $red ]; then  sequence+="31;"
@@ -354,7 +365,7 @@ case $bg in
   *)  sequence+="" ;;
 esac
 
-#trim last character (;) to close sequence with m
+#trim last character (;) to close sequence with "m"
 sequence=${sequence:0:-1}"m"
 
 if [ "$code" ]; then
